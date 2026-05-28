@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그랜드티아 - 시니어 MBTI 검사</title>
+    <style>
+        body {
+            background-color: #A9BA9D;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 { color: #3e4d3e; font-size: 2.2rem; margin-bottom: 15px; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 30px; }
+
+        .question-box { margin-bottom: 40px; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+        .question-text { font-size: 1.6rem; font-weight: bold; line-height: 1.5; color: #333; word-break: keep-all; }
+
+        .button-group { display: flex; flex-direction: column; gap: 12px; }
+        button {
+            padding: 18px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #A9BA9D;
+            border-radius: 50px;
+            background: white;
+            transition: 0.2s;
+        }
+        button:hover { background: #A9BA9D; color: white; }
+        .primary-btn { background: #4A5D45; color: white; border: none; }
+
+        #quiz, #result { display: none; }
+        
+        .result-name { font-size: 2.5rem; color: #4A5D45; margin: 20px 0; font-weight: bold; }
+        .result-desc { font-size: 1.2rem; line-height: 1.7; color: #555; background: #f4f7f4; padding: 20px; border-radius: 15px; text-align: left; word-break: keep-all; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="intro">
+        <h1>그랜드티아</h1>
+        <p class="subtitle">"내가 선비 타입일까, 대장부 타입일까?" <br>어르신을 위한 8문항 성격 검사</p>
+        <button class="primary-btn" style="width:100%" onclick="startQuiz()">검사 시작하기</button>
+    </div>
+
+    <div id="quiz">
+        <div class="question-box">
+            <div id="question-text" class="question-text"></div>
+        </div>
+        <div class="button-group">
+            <button onclick="next(1)">예</button>
+            <button onclick="next(0)">모름</button>
+            <button onclick="next(-1)">아니오</button>
+        </div>
+        <p id="progress" style="margin-top:25px; color:#999; font-size: 1.1rem;"></p>
+    </div>
+
+    <div id="result">
+        <h1>검사 결과</h1>
+        <div id="mbti-name" class="result-name"></div>
+        <div id="mbti-code" style="font-size: 1.5rem; color: #888; margin-bottom: 15px;"></div>
+        <p id="mbti-desc" class="result-desc"></p>
+        <button class="primary-btn" style="width:100%; margin-top:20px;" onclick="location.reload()">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "노인정이나 모임에서 처음 보는 사람에게 먼저 말을 잘 거시나요?", type: "E" },
+        { q: "여럿이 모여 시끌벅적하게 이야기하는 것보다 혼자 계시는 게 더 편하신가요?", type: "E", reverse: true },
+        { q: "길을 찾을 때 계획 없이 즉흥적으로 가기보다 표지판이나 지도를 꼭 확인하시나요?", type: "S" },
+        { q: "텔레비전을 볼 때 먼 미래 이야기보다 지금 당장의 뉴스나 생활 정보가 더 좋으신가요?", type: "S" },
+        { q: "주변 친구가 속상한 일을 겪으면 해결책을 알려주기보다 마음을 먼저 달래주시나요?", type: "F" },
+        { q: "드라마나 영화를 볼 때 주인공이 슬프면 나도 모르게 눈물이 나시나요?", type: "F" },
+        { q: "외출할 때는 몇 시에 나갈지, 무엇을 할지 미리 정해두어야 마음이 편하신가요?", type: "J" },
+        { q: "물건을 쓰고 나면 나중에 치우기보다 즉시 제자리에 두는 편이신가요?", type: "J" }
+    ];
+
+    const resultMap = {
+        "ISTJ": "전통을 지키는 선비형", 
+        "ISFJ": "정성 가득한 어머니형", 
+        "INFJ": "마음을 치유하는 도인형", 
+        "INTJ": "미래를 설계하는 지략가형",
+        "ISTP": "기술을 추구하는 장인형", 
+        "ISFP": "예술을 즐기는 풍류객형", 
+        "INFP": "마음을 치유하는 몽상가형", 
+        "INTP": "미래를 설계하는 학자형",
+        "ESTP": "기술을 추구하는 호걸형", 
+        "ESFP": "예술을 즐기는 흥부형", 
+        "ENFP": "마음을 치유하는 자유혼형", 
+        "ENTP": "미래를 설계하는 재치꾼형",
+        "ESTJ": "전통을 지키는 대장부형", 
+        "ESFJ": "전통을 지키는 인정많은형", 
+        "ENFJ": "마음을 치유하는 지도자형", 
+        "ENTJ": "미래를 설계하는 장수형"
+    };
+
+    let currentIdx = 0;
+    let scores = { E: 0, S: 0, F: 0, J: 0 };
+
+    function startQuiz() {
+        document.getElementById('intro').style.display = 'none';
+        document.getElementById('quiz').style.display = 'block';
+        showQuestion();
+    }
+
+    function showQuestion() {
+        document.getElementById('question-text').innerText = questions[currentIdx].q;
+        document.getElementById('progress').innerText = `질문 ${currentIdx + 1} / ${questions.length}`;
+    }
+
+    function next(val) {
+        const item = questions[currentIdx];
+        let actualVal = val;
+        if (item.reverse) actualVal *= -1;
+        
+        scores[item.type] += actualVal;
+        currentIdx++;
+
+        if (currentIdx < questions.length) {
+            showQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function showResult() {
+        document.getElementById('quiz').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+
+        const mbti = (scores.E >= 0 ? "E" : "I") + 
+                     (scores.S >= 0 ? "S" : "N") + 
+                     (scores.F >= 0 ? "F" : "T") + 
+                     (scores.J >= 0 ? "J" : "P");
+
+        const typeName = resultMap[mbti];
+        document.getElementById('mbti-name').innerText = typeName;
+        document.getElementById('mbti-code').innerText = `나의 성격 유형: ${mbti}`;
+        document.getElementById('mbti-desc').innerText = 
+            `당신은 '${typeName}' 특성을 가지고 계시네요! \n\n이 검사 결과는 성격의 경향성을 나타내며, 주변 사람들과 서로의 차이를 이해하고 더 즐겁게 소통하는 데 도움을 줍니다. 결과가 마음에 드신다면 가족이나 친구들과도 함께 나눠보세요.`;
+    }
+</script>
+
+</body>
+</html>
